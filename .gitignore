@@ -1,0 +1,27 @@
+# --- Node.js (backend) ---
+backend/node_modules/
+backend/npm-debug.log
+backend/yarn-debug.log
+backend/yarn-error.log
+
+# --- Build/output (por si generas build en backend) ---
+backend/dist/
+backend/build/
+
+# --- Environment files ---
+backend/.env
+backend/*.env
+
+# --- General OS files ---
+.DS_Store
+Thumbs.db
+
+# --- IDE/editor ---
+.vscode/
+.idea/
+
+# --- Logs ---
+*.log
+
+# --- Misc ---
+coverage/
