@@ -1,1 +1,0 @@
-que tal perro, esta carpeta es la app en react native

@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "UTPConnect",
+    "slug": "UTPConnect",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/LogoBus.png",
+    "scheme": "utpconnect",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+
+    "ios": {
+      "supportsTablet": true
+    },
+
+    "android": {
+      "adaptiveIcon": {
+        "backgroundImage": "./assets/images/LogoBus.png",
+        "backgroundColor": "#FFFFFF"
+      }
+    },
+
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/Logo-web.png"
+    },
+
+    "plugins": [
+      "expo-router"
+    ],
+
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
