@@ -1,5 +1,5 @@
 const mqtt = require('mqtt');
-const handler = require('./handlers/mqttHandler');
+const handler = require('../handlers/mqttHandler');
 
 function initMqtt(io) {
   const client = mqtt.connect(process.env.MQTT_URL);
