@@ -37,6 +37,10 @@ app.use("/telemetria", telemetriaRouter);
 app.use("/buses", busesRouter);
 app.use("/paradas", paradasRouter);
 
-app.listen(PORT, () =>
-  console.log(`🔥 API lista en http://localhost:${PORT}`)
+//app.listen(PORT, () =>
+  //console.log(`🔥 API lista en http://localhost:${PORT}`)
+//);
+
+app.listen(PORT, '0.0.0.0', () =>
+  console.log(`🔥 API lista en http://${process.env.HOST || '0.0.0.0'}:${PORT}`)
 );
