@@ -4,7 +4,7 @@
     "slug": "UTPConnect",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo.png",
+    "icon": "./assets/images/logoweb.png",
     "scheme": "utpconnect",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,

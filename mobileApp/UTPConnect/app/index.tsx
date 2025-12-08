@@ -6,7 +6,7 @@ export default function Index() {
     <View style={styles.container}>
       <View style={styles.content}>
         <Image 
-          source={require('../assets/images/Logo2_0.png')}
+          source={require('../assets/images/logobusmorado.png')}
           style={styles.logo}
         />
         <Text style={styles.title}>UTP Connect</Text>
