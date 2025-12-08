@@ -4,7 +4,7 @@
     "slug": "UTPConnect",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/LogoBus.png",
+    "icon": "./assets/images/logo.png",
     "scheme": "utpconnect",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -15,14 +15,14 @@
 
     "android": {
       "adaptiveIcon": {
-        "backgroundImage": "./assets/images/LogoBus.png",
+        "backgroundImage": "./assets/images/logo.png",
         "backgroundColor": "#FFFFFF"
       }
     },
 
     "web": {
       "output": "static",
-      "favicon": "./assets/images/Logo-web.png"
+      "favicon": "./assets/images/logoweb.png"
     },
 
     "plugins": [
