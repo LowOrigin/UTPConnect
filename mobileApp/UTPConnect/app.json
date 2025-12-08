@@ -8,30 +8,32 @@
     "scheme": "utpconnect",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-
     "ios": {
       "supportsTablet": true
     },
-
     "android": {
       "adaptiveIcon": {
         "backgroundImage": "./assets/images/logo.png",
         "backgroundColor": "#FFFFFF"
-      }
+      },
+      "package": "com.jeansolano.UTPConnect"
     },
-
     "web": {
       "output": "static",
       "favicon": "./assets/images/logoweb.png"
     },
-
     "plugins": [
       "expo-router"
     ],
-
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "8a6c5f14-bad3-4884-a83d-f900fc31e836"
+      }
     }
   }
 }
