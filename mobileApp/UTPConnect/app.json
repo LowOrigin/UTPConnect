@@ -13,17 +13,29 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundImage": "./assets/images/logo.png",
+        "backgroundImage": "./assets/images/logoweb.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.jeansolano.UTPConnect"
+      "package": "com.jeansolano.UTPConnect",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAy1uoVu7kBtDxtong_nEciFbh3wHW68wE"
+        }
+      }
     },
     "web": {
       "output": "static",
       "favicon": "./assets/images/logoweb.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-maps",
+        {
+          "requestLocationPermission": "true"
+        }
+      ]
+      
     ],
     "experiments": {
       "typedRoutes": true,
