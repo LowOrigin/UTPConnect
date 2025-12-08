@@ -30,12 +30,11 @@
     "plugins": [
       "expo-router",
       [
-        "expo-maps",
+        "react-native-maps",
         {
-          "requestLocationPermission": "true"
+          "googleMapsApiKey": "AIzaSyAy1uoVu7kBtDxtong_nEciFbh3wHW68wE"
         }
       ]
-      
     ],
     "experiments": {
       "typedRoutes": true,
