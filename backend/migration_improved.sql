@@ -76,7 +76,7 @@ CREATE INDEX IF NOT EXISTS idx_telemetria_route_ts ON telemetria(route_id, ts DE
 -- -------------------------
 -- Versión corregida: new_status es del tipo enum realtime_status_type
 CREATE OR REPLACE FUNCTION fn_after_insert_telemetria_notify()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $$ 
 DECLARE
   seq_val BIGINT;
   new_status realtime_status_type := 'idle'::realtime_status_type;
@@ -102,28 +102,29 @@ BEGIN
     ELSIF LOWER(NEW.evento) LIKE '%detect%' OR LOWER(NEW.evento) LIKE '%detectado%' OR LOWER(NEW.evento) LIKE '%camino%' OR LOWER(NEW.evento) LIKE '%aproxim%' THEN
       new_status := 'approaching'::realtime_status_type;
     ELSE
-      new_status := 'idle'::realtime_status_type;
+      new_status := 'idle'::realtime_status_type;  -- Caso "idle"
     END IF;
   END IF;
 
-  -- actualizar buses (si existe el registro)
-  UPDATE buses
-    SET ultima_actualizacion = NEW.ts,
-        seq_bus = COALESCE(seq_val, seq_bus),
-        numero_pasajeros = COALESCE(NEW.numero_pasajeros, numero_pasajeros),
-        rssi_bus = COALESCE(NEW.rssi, rssi_bus),
-        current_parada_id = NEW.parada_id,
-        last_seen_ts = NEW.ts
-    WHERE bus_id = NEW.bus_id;
-
-  -- actualizar paradas (asignamos directamente el enum)
-  UPDATE paradas
+  -- Si el estado es 'idle', no asignar el bus a la parada, poner current_bus_id como NULL
+  IF new_status = 'idle' THEN
+    UPDATE paradas
+    SET ultima_conexion_bus = NEW.ts,
+        ultima_actualizacion = NEW.ts,
+        current_bus_id = NULL,  -- Asignamos NULL en lugar del bus actual
+        realtime_status = new_status,
+        last_event_ts = NEW.ts
+    WHERE parada_id = NEW.parada_id;
+  ELSE
+    -- Si no es 'idle', actualizamos el bus normalmente
+    UPDATE paradas
     SET ultima_conexion_bus = NEW.ts,
         ultima_actualizacion = NEW.ts,
         current_bus_id = NEW.bus_id,
         realtime_status = new_status,
         last_event_ts = NEW.ts
     WHERE parada_id = NEW.parada_id;
+  END IF;
 
   -- obtener route y orden de la parada actual si existen
   SELECT route_id, orden INTO p_route, p_orden FROM paradas WHERE parada_id = NEW.parada_id LIMIT 1;
@@ -142,7 +143,6 @@ BEGIN
     'telemetria', to_jsonb(NEW),
     'parada_id', NEW.parada_id,
     'bus_id', NEW.bus_id,
-    -- enviamos 'status' como texto para que el listener lo maneje fácilmente
     'status', new_status::text,
     'route_id', p_route,
     'orden', p_orden,
@@ -154,6 +154,7 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
 
 
 -- recrear trigger
