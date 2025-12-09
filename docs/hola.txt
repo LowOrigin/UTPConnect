@@ -1,1 +1,167 @@
 hola perro, esta parte no se para que es, pero de momento se va para el github
+
+cosas que hacer en la api 4:58 pm, 8/12/2025
+
+Añadir un módulo separado services/pgNotifyListener.js que haga LISTEN telemetria_inserted y reenvíe eventos por socket.io (recomendado).
+
+O dejar app.js así y sólo agregar un endpoint extra (ej. /paradas/:id/next) que devuelva current+next parada.
+
+O preparar un ejemplo simple en routes/telemetria.routes.js para insertar telemetría de prueba y ver todo el flujo.
+
+
+
+Consejos de listener de telemtria api:
+
+¿Qué necesitas para que la emisión funcione en desarrollo?
+
+Crear un módulo src/utils/io.js que exporte el singleton io. Ejemplo mínimo (si usas httpServer al arrancar):
+
+// src/utils/io.js
+let ioInstance = null;
+
+export function initIo(server) {
+  // server: httpServer from createServer(app)
+  const { Server } = await import("socket.io");
+  if (!ioInstance) {
+    ioInstance = new Server(server, { cors: { origin: "*" } });
+  }
+  return ioInstance;
+}
+
+// Export default io after init
+export function getIo() {
+  if (!ioInstance) throw new Error("io not initialized. Call initIo(server) first.");
+  return ioInstance;
+}
+
+export default getIo;
+
+
+En tu arranque (app.js o server.js) después de crear httpServer, llama a initIo(httpServer) y guarda el io. Por ejemplo:
+
+import http from "http";
+import app from "./app.js"; // si exportas express app
+import { initIo } from "./src/utils/io.js";
+
+const server = http.createServer(app);
+const io = await initIo(server);
+
+server.listen(PORT, "0.0.0.0", () => console.log("listening..."));
+
+
+En tu app React/Expo, suscríbete al evento telemetria_inserted con socket.io-client y actualiza UI en tiempo real.
+
+Nota final / advertencia
+
+Esta emisión desde controller es válida para desarrollo rápido y pruebas.
+
+En producción te recomiendo usar el flujo BD (pg_notify) → Node LISTEN → io.emit, porque cubre inserciones que no pasen por la API y asegura una fuente centralizada de eventos. Cuando implementes eso, elimina esta emisión desde controller para evitar duplicados.
+
+Si quieres, te dejo ahora:
+
+el archivo src/utils/io.js completo y listo a pegar (con initIo/getIo), y
+
+un ejemplo corto de cliente React/Expo que se conecta por socket.io-client y escucha telemetria_inserted.
+
+
+
+const INITIAL_STOPS: Stop[] = [
+  { id: "p1", name: "Parada A", x: 0.366, y: 0.830, status: "idle", buses: [] },
+  { id: "p2", name: "Parada B", x: 0.474, y: 0.672, status: "idle", buses: [] },
+  { id: "p3", name: "Parada C", x: 0.484, y: 0.465, status: "idle", buses: [] },
+];
+imagen: 1536 x 1024
+4 parada: 1008 x 315 = { x: 0.656, y: 0.308 }
+
+
+1	"stop-01"	"Edificio Administrativo - Orillac"	"activa"			"Estación de salida."	"2025-12-08 16:10:03.520053-05"	0.366	0.830	"RUTA-1"	1		"idle"	
+2	"stop-02"	"Entre Edificio 3 y DITIC"	"activa"			"Al lado del edificio 3."	"2025-12-08 16:10:03.520053-05"	0.474	0.672	"RUTA-1"	2		"idle"	
+3	"stop-03"	"Edificio 1"	"activa"			"Entrada del edificio 1."	"2025-12-08 16:10:03.520053-05"	0.484	0.465	"RUTA-1"	3		"idle"	
+4	"stop-04"	"Edificio de Postgrado"	"activa"	"2025-12-08 19:40:35.197-05"	"2025-12-08 19:40:35.197-05"	"Entrada del edificio de postgrado."	"2025-12-06 12:40:41.05721-05"	0.656	0.308	"RUTA-1"	4	"bus-1"	"approaching"	"2025-12-08 19:40:35.197-05"
+
+
+Anterior triger función insert telemetria con el error de bus curret cuando es idle
+
+-- -------------------------
+-- FUNCION TRIGGER: actualizar tablas + NOTIFY (pg_notify)
+-- -------------------------
+-- Versión corregida: new_status es del tipo enum realtime_status_type
+CREATE OR REPLACE FUNCTION fn_after_insert_telemetria_notify()
+RETURNS TRIGGER AS $$
+DECLARE
+  seq_val BIGINT;
+  new_status realtime_status_type := 'idle'::realtime_status_type;
+  p_route TEXT;
+  p_orden INT;
+  next_pid TEXT;
+  payload JSONB;
+BEGIN
+  -- extraer seq si existe
+  seq_val := NULL;
+  IF NEW.raw_payload IS NOT NULL AND (NEW.raw_payload ? 'seq') THEN
+    BEGIN
+      seq_val := (NEW.raw_payload->>'seq')::BIGINT;
+    EXCEPTION WHEN others THEN
+      seq_val := NULL;
+    END;
+  END IF;
+
+  -- determinar status simple a partir de evento textual (convertimos a enum)
+  IF NEW.evento IS NOT NULL THEN
+    IF LOWER(NEW.evento) LIKE '%llego%' OR LOWER(NEW.evento) LIKE '%arriv%' THEN
+      new_status := 'arrived'::realtime_status_type;
+    ELSIF LOWER(NEW.evento) LIKE '%detect%' OR LOWER(NEW.evento) LIKE '%detectado%' OR LOWER(NEW.evento) LIKE '%camino%' OR LOWER(NEW.evento) LIKE '%aproxim%' THEN
+      new_status := 'approaching'::realtime_status_type;
+    ELSE
+      new_status := 'idle'::realtime_status_type;
+    END IF;
+  END IF;
+
+  -- actualizar buses (si existe el registro)
+  UPDATE buses
+    SET ultima_actualizacion = NEW.ts,
+        seq_bus = COALESCE(seq_val, seq_bus),
+        numero_pasajeros = COALESCE(NEW.numero_pasajeros, numero_pasajeros),
+        rssi_bus = COALESCE(NEW.rssi, rssi_bus),
+        current_parada_id = NEW.parada_id,
+        last_seen_ts = NEW.ts
+    WHERE bus_id = NEW.bus_id;
+
+  -- actualizar paradas (asignamos directamente el enum)
+  UPDATE paradas
+    SET ultima_conexion_bus = NEW.ts,
+        ultima_actualizacion = NEW.ts,
+        current_bus_id = NEW.bus_id,
+        realtime_status = new_status,
+        last_event_ts = NEW.ts
+    WHERE parada_id = NEW.parada_id;
+
+  -- obtener route y orden de la parada actual si existen
+  SELECT route_id, orden INTO p_route, p_orden FROM paradas WHERE parada_id = NEW.parada_id LIMIT 1;
+
+  -- buscar siguiente parada en la misma ruta (orden > current)
+  IF p_route IS NOT NULL AND p_orden IS NOT NULL THEN
+    SELECT parada_id INTO next_pid
+      FROM paradas
+     WHERE route_id = p_route AND orden > p_orden
+     ORDER BY orden
+     LIMIT 1;
+  END IF;
+
+  -- construir payload para NOTIFY (backend lo reenviará por socket)
+  payload := jsonb_build_object(
+    'telemetria', to_jsonb(NEW),
+    'parada_id', NEW.parada_id,
+    'bus_id', NEW.bus_id,
+    -- enviamos 'status' como texto para que el listener lo maneje fácilmente
+    'status', new_status::text,
+    'route_id', p_route,
+    'orden', p_orden,
+    'next_parada_id', COALESCE(next_pid, NULL)
+  );
+
+  PERFORM pg_notify('telemetria_inserted', payload::text);
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;

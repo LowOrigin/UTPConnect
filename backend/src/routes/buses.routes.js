@@ -1,3 +1,4 @@
+// routes/buses.routes.js
 import express from "express";
 import { getBuses, updateBus } from "../controllers/buses.controller.js";
 

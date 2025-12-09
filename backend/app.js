@@ -1,12 +1,13 @@
+// app.js
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { db } from "./config/db.js";
+import { db } from "./src/config/db.js";
 
-// Importar rutas (siempre arriba)
-import telemetriaRouter from "./routes/telemetria.routes.js";
-import busesRouter from "./routes/buses.routes.js";
-import paradasRouter from "./routes/paradas.routes.js";
+// Importar rutas
+import telemetriaRouter from "./src/routes/telemetria.routes.js";
+import busesRouter from "./src/routes/buses.routes.js";
+import paradasRouter from "./src/routes/paradas.routes.js";
 
 dotenv.config();
 
@@ -30,17 +31,10 @@ app.get("/test-db", async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
-
 // Usar rutas modulares
 app.use("/telemetria", telemetriaRouter);
 app.use("/buses", busesRouter);
 app.use("/paradas", paradasRouter);
 
-//app.listen(PORT, () =>
-  //console.log(`🔥 API lista en http://localhost:${PORT}`)
-//);
-
-app.listen(PORT, '0.0.0.0', () =>
-  console.log(`🔥 API lista en http://${process.env.HOST || '0.0.0.0'}:${PORT}`)
-);
+// Exporta la app para que server.js la use
+export default app;
