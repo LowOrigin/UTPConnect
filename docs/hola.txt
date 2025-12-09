@@ -1,1 +1,64 @@
 hola perro, esta parte no se para que es, pero de momento se va para el github
+
+cosas que hacer en la api 4:58 pm, 8/12/2025
+
+Añadir un módulo separado services/pgNotifyListener.js que haga LISTEN telemetria_inserted y reenvíe eventos por socket.io (recomendado).
+
+O dejar app.js así y sólo agregar un endpoint extra (ej. /paradas/:id/next) que devuelva current+next parada.
+
+O preparar un ejemplo simple en routes/telemetria.routes.js para insertar telemetría de prueba y ver todo el flujo.
+
+
+
+Consejos de listener de telemtria api:
+
+¿Qué necesitas para que la emisión funcione en desarrollo?
+
+Crear un módulo src/utils/io.js que exporte el singleton io. Ejemplo mínimo (si usas httpServer al arrancar):
+
+// src/utils/io.js
+let ioInstance = null;
+
+export function initIo(server) {
+  // server: httpServer from createServer(app)
+  const { Server } = await import("socket.io");
+  if (!ioInstance) {
+    ioInstance = new Server(server, { cors: { origin: "*" } });
+  }
+  return ioInstance;
+}
+
+// Export default io after init
+export function getIo() {
+  if (!ioInstance) throw new Error("io not initialized. Call initIo(server) first.");
+  return ioInstance;
+}
+
+export default getIo;
+
+
+En tu arranque (app.js o server.js) después de crear httpServer, llama a initIo(httpServer) y guarda el io. Por ejemplo:
+
+import http from "http";
+import app from "./app.js"; // si exportas express app
+import { initIo } from "./src/utils/io.js";
+
+const server = http.createServer(app);
+const io = await initIo(server);
+
+server.listen(PORT, "0.0.0.0", () => console.log("listening..."));
+
+
+En tu app React/Expo, suscríbete al evento telemetria_inserted con socket.io-client y actualiza UI en tiempo real.
+
+Nota final / advertencia
+
+Esta emisión desde controller es válida para desarrollo rápido y pruebas.
+
+En producción te recomiendo usar el flujo BD (pg_notify) → Node LISTEN → io.emit, porque cubre inserciones que no pasen por la API y asegura una fuente centralizada de eventos. Cuando implementes eso, elimina esta emisión desde controller para evitar duplicados.
+
+Si quieres, te dejo ahora:
+
+el archivo src/utils/io.js completo y listo a pegar (con initIo/getIo), y
+
+un ejemplo corto de cliente React/Expo que se conecta por socket.io-client y escucha telemetria_inserted.
